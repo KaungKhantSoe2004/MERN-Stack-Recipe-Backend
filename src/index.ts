@@ -5,8 +5,9 @@ import dotenv from "dotenv";
 import router from "./routes/blog";
 import multer from "multer";
 import userRouter from "./routes/user";
-dotenv.config();
 
+dotenv.config();
+const cookieParser = require("cookie-parser");
 const app = express();
 const PORT = process.env.PORT || 3000;
 // const upload = multer({
@@ -18,11 +19,19 @@ const MONGO_URI =
   process.env.MONGO_URI || "mongodb://localhost:27017/mydatabase";
 
 // Middleware
-app.use(cors());
+// app.use(cors());
+app.use(cookieParser());
+app.use(
+  cors({
+    origin: "http://localhost:5173", // 👈 must match your frontend's origin
+    credentials: true, // 👈 allow cookies and credentials
+  })
+);
 app.use(express.json());
 app.use(express.static("public"));
 // app.use("/public", express.static("public"));
 app.use(express.urlencoded({ extended: true }));
+
 // app.use(upload.single("image")); // Parse multipart/form-data
 
 // MongoDB Connection

@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 import { Request, Response } from "express";
 import User from "../models/User";
+import getToken from "../helpers/jwt";
 
 const UserController = {
   register: async (req: Request, res: Response): Promise<void> => {
@@ -63,6 +64,12 @@ const UserController = {
       const hashedPassword = ExistedUser.password;
       const isPasswordTrue = bcrypt.compareSync(password, hashedPassword);
       if (isPasswordTrue) {
+        const token = getToken(ExistedUser._id);
+        res.cookie("jwt", token, {
+          httpOnly: true,
+
+          maxAge: 3 * 24 * 60 * 60 * 1000,
+        });
         res.status(200).json({
           success: true,
           message: "Success",
@@ -81,6 +88,20 @@ const UserController = {
         errors: "User doesn't exist",
       });
     }
+  },
+  me: async (req: Request | any, res: Response): Promise<void> => {
+    const user = await User.findById(req.user_id);
+    console.log(req.user_id);
+    res.status(200).json({
+      data: user,
+      message: "success",
+    });
+  },
+  logout: async (req: Request, res: Response): Promise<void> => {
+    res.clearCookie("jwt", {
+      httpOnly: true,
+    });
+    res.status(200).json({ message: "logged out" });
   },
 };
 export default UserController;
