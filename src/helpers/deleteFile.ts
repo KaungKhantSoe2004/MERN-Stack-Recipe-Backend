@@ -8,7 +8,6 @@ async function deleteImage(imagePath: string) {
     await fs.access(fullPath); // throws if file not found
     await fs.unlink(fullPath);
 
-    console.log("Image deleted successfully:", fullPath);
     return true;
   } catch (error: any) {
     if (error.code === "ENOENT") {

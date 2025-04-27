@@ -34,16 +34,42 @@ const BlogController = {
   // Fetch blogs with pagination
   index: async (req: Request, res: Response): Promise<void> => {
     try {
-      console.log(req.query.page);
       const page =
         typeof req.query.page === "string" ? parseInt(req.query.page) : 1;
       const limit = 10;
+      const searchTerm =
+        typeof req.query.search === "string" ? req.query.search : "";
       const skip = (page - 1) * limit;
-      const blogs = await Blog.find().skip(skip).limit(limit);
+      let query = {};
+
+      if (searchTerm) {
+        query = { title: { $regex: searchTerm, $options: "i" } };
+      }
+
+      const blogs = await Blog.find(query).skip(skip).limit(limit);
+
+      // const blogs = await Blog.find().skip(skip).limit(limit);
+      const totalBlogCount = await Blog.countDocuments();
+
+      const items = Math.ceil(totalBlogCount / limit);
+      let loopableLinks = [];
+
+      for (let i = 0; i < items; i++) {
+        loopableLinks.push({ number: i + 1 });
+      }
+
+      // return;
+      let links = {
+        nextPage: true,
+        prevPage: true,
+        currentPage: page,
+        loopableLinks,
+      };
       res.status(200).json({
         success: true,
         message: "Success",
         data: blogs,
+        links,
       });
     } catch (error: any) {
       console.error(error);
@@ -75,7 +101,6 @@ const BlogController = {
           data: savedBlog,
         });
       } catch (err: any) {
-        console.log(err);
         res.status(500).json({
           success: false,
           message: "Internal Server Error",
@@ -85,7 +110,6 @@ const BlogController = {
 
       // Return the newly created blog
     } catch (err: any) {
-      console.log(err);
       res.status(400).json({
         success: false,
         message: "Validation Error",
@@ -100,7 +124,7 @@ const BlogController = {
       const blog = await Blog.findOne({ _id: new ObjectId(req.params.id) });
       const image = blog?.coverImage;
       const partAfterDomain = image.split("http://localhost:3000/")[1];
-      console.log(partAfterDomain);
+
       deleteImage(partAfterDomain);
       await Blog.findByIdAndDelete(req.params.id);
       res.status(200).json({
@@ -143,7 +167,7 @@ const BlogController = {
         const blog = await Blog.findOne({ _id: new ObjectId(req.params.id) });
         const image = blog?.coverImage;
         const partAfterDomain = image.split("http://localhost:3000/")[1];
-        console.log(partAfterDomain);
+
         deleteImage(partAfterDomain);
       }
 

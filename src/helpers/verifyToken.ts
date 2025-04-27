@@ -7,7 +7,7 @@ const jwt = require("jsonwebtoken");
 // Extend Express Request to include `user`
 const verifyToken = (req: Request, res: Response, next: NextFunction): any => {
   const token: string | undefined = req.cookies.jwt;
-  console.log(token, "is token");
+
   if (token) {
     jwt.verify(
       token,

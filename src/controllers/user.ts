@@ -4,12 +4,11 @@ import User from "../models/User";
 import getToken from "../helpers/jwt";
 
 const UserController = {
-  register: async (req: Request, res: Response): Promise<void> => {
+  register: async (req: Request, res: Response): Promise<any> => {
     try {
       const { name, email, password } = req.body;
 
       if (!name || !email || !password) {
-        console.log("ok desu");
         res.status(422).json({
           success: false,
           message: "error occured",
@@ -19,9 +18,9 @@ const UserController = {
       }
 
       const ExistedUser = await User.findOne({ email: email });
-      console.log(ExistedUser);
+
       if (ExistedUser) {
-        res.status(409).json({
+        return res.status(409).json({
           success: false,
           message: "User already Exists",
           errors: "User already Exists",
@@ -36,13 +35,18 @@ const UserController = {
       }
       const newUser = await new User(req.body).save();
       if (newUser) {
-        res.status(200).json({
+        const token = getToken(newUser._id);
+        res.cookie("jwt", token, {
+          httpOnly: true,
+
+          maxAge: 3 * 24 * 60 * 60 * 1000,
+        });
+        return res.status(200).json({
           success: true,
           message: "Success",
         });
       }
     } catch (e) {
-      console.log(e, "is error");
       res.status(400).json({
         success: false,
         message: "error occured",
@@ -50,7 +54,7 @@ const UserController = {
       });
     }
   },
-  login: async (req: Request, res: Response): Promise<void> => {
+  login: async (req: Request, res: Response): Promise<any> => {
     const { email, password } = req.body;
     if (!email || !password) {
       res.status(422).json({
@@ -70,19 +74,19 @@ const UserController = {
 
           maxAge: 3 * 24 * 60 * 60 * 1000,
         });
-        res.status(200).json({
+        return res.status(200).json({
           success: true,
           message: "Success",
         });
       } else {
-        res.status(401).json({
+        return res.status(401).json({
           success: false,
           message: "Password icorrect",
           errors: "Password incorrect",
         });
       }
     } else {
-      res.status(404).json({
+      return res.status(404).json({
         success: false,
         message: "User doesn't exist",
         errors: "User doesn't exist",
@@ -91,7 +95,7 @@ const UserController = {
   },
   me: async (req: Request | any, res: Response): Promise<void> => {
     const user = await User.findById(req.user_id);
-    console.log(req.user_id);
+
     res.status(200).json({
       data: user,
       message: "success",
