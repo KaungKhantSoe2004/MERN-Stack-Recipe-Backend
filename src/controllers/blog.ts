@@ -1,10 +1,16 @@
 import { Request, Response } from "express";
 import Blog from "../models/Blog";
+import path from "path";
 import * as yup from "yup";
 import { Interface } from "readline";
 import deleteImage from "../helpers/deleteFile";
+import User from "../models/User";
+import sendMail from "../helpers/sendMail";
+import emailQueue from "../helpers/emailQueue";
+const ejs = require("ejs");
 const { ObjectId } = require("mongodb");
 const domainName = "http://localhost:3000/";
+const nodemailer = require("nodemailer");
 // Define the schema for validation
 const blogSchema = yup.object({
   title: yup
@@ -85,31 +91,40 @@ const BlogController = {
   addBlog: async (req: Request, res: Response): Promise<void> => {
     try {
       await blogSchema.validate(req.body, { abortEarly: false });
-      try {
-        const newBlog = new Blog({
-          title: req.body.title,
-          description: req.body.description,
-          ingredients: req.body.ingredients,
-          instructions: req.body.instructions,
-          tags: req.body.tags,
-          coverImage: `${domainName}${req.file?.filename}`,
-        });
-        const savedBlog = await newBlog.save();
-        res.status(200).json({
-          success: true,
-          message: "Blog Added Successfully",
-          data: savedBlog,
-        });
-      } catch (err: any) {
-        res.status(500).json({
-          success: false,
-          message: "Internal Server Error",
-          // errors: err.console.errors,
-        });
-      }
 
-      // Return the newly created blog
+      const newBlog = new Blog({
+        title: req.body.title,
+        description: req.body.description,
+        ingredients: req.body.ingredients,
+        instructions: req.body.instructions,
+        tags: req.body.tags,
+        coverImage: `${domainName}${req.file?.filename}`,
+      });
+      const savedBlog = await newBlog.save();
+      const userId = req.body.userId;
+      const user = await User.findById(userId);
+      let allUsers = await User.find({}, ["name", "email"]);
+      allUsers = allUsers.filter(
+        (eachUser: any) => eachUser.email != user.email
+      );
+      console.log(allUsers);
+
+      if (!user) {
+        res.status(404).json({ message: "User not found" });
+      }
+      try {
+        console.log(user, "in blog controller");
+        emailQueue.add({ allUsers, user, newBlog });
+      } catch (err) {
+        console.log("error in sending email");
+      }
+      res.status(200).json({
+        success: true,
+        message: "Blog Added Successfully",
+        data: savedBlog,
+      });
     } catch (err: any) {
+      console.log(err);
       res.status(400).json({
         success: false,
         message: "Validation Error",

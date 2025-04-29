@@ -5,7 +5,19 @@ import dotenv from "dotenv";
 import router from "./routes/blog";
 import multer from "multer";
 import userRouter from "./routes/user";
+import sendMail from "./helpers/sendMail";
+import emailQueue from "./helpers/emailQueue";
 
+emailQueue.process(async (job: any, done: any) => {
+  try {
+    // console.log(job.data.user, "in blog index.ts");
+    // console.log(job.data.allUsers, "in index");
+    // console.log(job.data.newBlog, "in index");
+    sendMail(job.data.allUsers, job.data.user, job.data.newBlog);
+  } catch (err) {
+    console.log("error in sending email");
+  }
+});
 dotenv.config();
 const cookieParser = require("cookie-parser");
 const app = express();
@@ -31,7 +43,8 @@ app.use(express.json());
 app.use(express.static("public"));
 // app.use("/public", express.static("public"));
 app.use(express.urlencoded({ extended: true }));
-
+app.set("views", "./views");
+app.set("view engine", "ejs");
 // app.use(upload.single("image")); // Parse multipart/form-data
 
 // MongoDB Connection
